@@ -1,5 +1,8 @@
 { prim, closure } = require \./repr
 
+# The initial environment, populated by various handy procedures, mostly
+# primitives.
+#
 default-env = ->
 
   '+': prim (a, b) -> a + b
@@ -15,6 +18,8 @@ default-env = ->
   'sub1' : prim (x) -> x - 1
 
   'p': prim (...xs) -> console.log "[ * ] ", ...xs
+
+  'gensym' : prim gensym
 
   'void': prim -> void
 
@@ -35,6 +40,14 @@ default-env = ->
 
   'id'   : closure [\x] [\x]
 
+  'now'  : prim -> new Date!get-time!
+
+# The initial collection of macros. Macros are required to be procedure-like
+# objects from the perspective of the hosted interpreter; due to sheer lazyness
+# on my part, they are expressed mostly as prims, bits of code for the _hosting_
+# interpreter, and not as closures, bits of code for the _hosted_ one.  Although
+# either would do.
+#
 default-macro-env = ->
 
   'begin': prim (expr) ->
@@ -61,8 +74,18 @@ default-macro-env = ->
     case not clause =>
     case clause.0 is \else => [\begin ...clause[1 to ]]
     case clause.1 is \=>   =>
-      [\let [[\xxx clause.0]]
-        [\if \xxx [clause.2, \xxx] [\cond ...clauses]]]
+      name = gensym!
+      [\let [[name, clause.0]]
+        [\if name, [clause.2, name] [\cond ...clauses]]]
     case _ => [\if clause.0, [\begin ...clause[1 to ]], [\cond ...clauses]]
+
+  'time' : prim ([_, ...exprs]) ->
+    [ t0, res, t1 ] = [ gensym!, gensym!, gensym! ]
+    [\let [[t0,  [\now]]
+           [res, [\begin ...exprs]]
+           [t1,  [\now]]]
+      [\p [\quote "real time:"] [\- t1, t0] [\quote "ms"]], res]
+
+gensym = do -> n = 0 ; -> "gen-#{n++}"
 
 module.exports = { default-env, default-macro-env }

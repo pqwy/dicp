@@ -40,6 +40,6 @@ apply1 = (fun, args) ->
 
 
 ###
-module.exports = eval: eval1
+module.exports = eval: (expr, { env } = {}) -> eval1 expr, env
 
 require \tester .conforms-to eval1, \programs1

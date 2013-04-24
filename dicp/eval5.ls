@@ -80,9 +80,13 @@ expand = (expr, env = default-env!, menv = default-macro-env!) ->
     case \Object => {[k, expand v, env, menv] for k, v of expr}
     case _       => expr
 
-full-eval = (expr) -> force eval5 expand expr
+eval-me = (expr, opt) ->
+  force eval5 do
+    expand expr, opt?.meta-env, opt?.macro-env
+    opt?.env
+    id
 
 ###
-module.exports = eval: full-eval, expand: expand
+module.exports = eval: eval-me, expand: expand
 
-require \tester .conforms-to full-eval, \programs2, \programs3, \programs4, \programs5
+require \tester .conforms-to eval-me, \programs2, \programs3, \programs4, \programs5

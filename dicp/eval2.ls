@@ -38,6 +38,6 @@ apply1 = (fun, args) ->
   case _ => throw "not fun: #fun"
 
 ###
-module.exports = eval: eval2
+module.exports = eval: (expr, { env } = {}) -> eval2 expr, env
 
 require \tester .conforms-to eval2, \programs2
