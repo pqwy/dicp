@@ -2,42 +2,38 @@
 # A JSON repl. Best run via rlwrap.
 #
 
-require! \util
+require! [ \util, \boot ]
 
 repl = (evaluator) ->
 
-  [ buffer, cont ] = [ "", false ]
+  buffer = []
 
-  [ env, meta-env, macro-env ]  = do ->
-    require! \boot
+  [ env, meta-env, macro-env ]  =
     [ boot.default-env!, boot.default-env!, boot.default-macro-env! ]
 
   process.stdin.on \data, !(buf) ->
-    str = buf.to-string \utf8
-    switch m = str.match /\n/
-      case null => buffer := buffer + str
-      case _    =>
-        input   = buffer + str.substring 0, m.index
-        buffer := str.substring (m.index + 1)
-        cont   := false
-        try
-          prog   = JSON.parse input
-          res    = evaluator prog, { env, meta-env, macro-env }
-          console.log util.inspect res, {+colors, depth: null}
-        catch e =>
-          if e.type is 'unexpected_eos'
-            cont   := true
-            buffer := input + buffer
-          else
-            console.error "error:", e
-        write-prompt!
+    buf.to-string \utf8 .split '\n' |> each (line) ->
+      try
+        console.log do
+          util.inspect do
+            evaluator do
+              JSON.parse [...buffer, line].join ' '
+              { env, meta-env, macro-env }
+            { +colors, depth: null }
+        buffer := []
+      catch e =>
+        if e.type is 'unexpected_eos'
+          buffer.push line unless line.match /^\s*$/
+        else
+          buffer := []
+          console.error 'error:', e
+    prompt!
 
-  write-prompt = ->
-    process.stdout.write do
-      if cont then "...    > " else "[DICP] > "
+  prompt = -> process.stdout.write do
+    if buffer.length then "...    > "
+    else                  "[DICP] > "
 
-  write-prompt!
-
+  prompt!
 
 mod = require \eval5
 repl mod.eval
